@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music4Life — Tải nhạc</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --panel: #ffffff;
+      --panel2: #f0f2f5;
+      --line: #e2e6ec;
+      --txt: #1b1f27;
+      --muted: #6b7280;
+      --accent: #1db954;
+      --charcoal: #374151;
+      --amber: #b45309;
+      --red: #b91c1c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--txt);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 22px;
+      font-size: 13px;
+    }
+
+    code {
+      background: var(--panel2);
+      padding: 1px 6px;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    input[type=text] {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--txt);
+      padding: 11px 13px;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input[type=text]:focus {
+      border-color: var(--accent);
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #fff;
+      color: var(--txt);
+      white-space: nowrap;
+      transition: .15s;
+    }
+
+    button:hover {
+      background: var(--panel2);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    button.primary:hover {
+      background: var(--accent);
+      filter: brightness(1.05);
+    }
+
+    button.find {
+      background: var(--charcoal);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    button.find:hover {
+      background: var(--charcoal);
+      filter: brightness(1.15);
+    }
+
+    button.ghost {
+      background: transparent;
+    }
+
+    button.ghost:hover {
+      background: var(--panel2);
+    }
+
+    button.icon {
+      padding: 11px 13px;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .rowwrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 12px;
+      background: #fbfcfd;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .chip.sp {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .chip.yt {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .chip.dup {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .results {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .res {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      background: #fff;
+      transition: .12s;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .res:hover {
+      border-color: #c7ccd4;
+      background: #fafbfc;
+    }
+
+    .res.sel {
+      border-color: var(--accent);
+      background: #f0fdf4;
+    }
+
+    .res.sel:hover {
+      border-color: var(--accent);
+      background: #f0fdf4;
+    }
+
+    .relink {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+
+    .relink:hover {
+      text-decoration: underline;
+    }
+
+    .res img {
+      width: 46px;
+      height: 46px;
+      border-radius: 7px;
+      object-fit: cover;
+      background: #eee;
+      flex: none;
+    }
+
+    .res .meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .res .t {
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .res .a {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .res .d {
+      color: var(--muted);
+      font-size: 12px;
+      flex: none;
+    }
+
+    .note {
+      color: var(--amber);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .bar {
+      height: 10px;
+      background: var(--panel2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 6px 0 14px;
+    }
+
+    .bar>div {
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+      transition: width .3s;
+    }
+
+    .job {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .job:first-child {
+      border-top: 0;
+    }
+
+    .job .jt {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .job .jt .n {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .job .jt .l {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .st {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      flex: none;
+    }
+
+    .st.queued {
+      background: #eef0f3;
+      color: #6b7280;
+    }
+
+    .st.downloading {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .st.converting {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+
+    .st.done {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .st.error {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .folderbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    .folderbar code {
+      word-break: break-all;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+
+    button.tab {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    button.tab:hover {
+      background: transparent;
+      color: var(--txt);
+    }
+
+    button.tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 24, 40, .45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      width: 100%;
+      max-width: 460px;
+      max-height: 85vh;
+      overflow: auto;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .25);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>🎵 Music<span>4Life</span></h1>
+    <p class="sub">Dán link Spotify / YouTube, hoặc gõ tên bài rồi chọn. Tải audio mp3 chất lượng cao về
+      <code>downloads/</code>.
+    </p>
+
+    <div class="folderbar">
+      <span class="hint" style="margin:0">📁 Lưu vào: <code id="folderPath">…</code></span>
+      <span style="margin-left:auto;display:flex;gap:10px;align-items:center">
+        <a class="relink" id="folderManual">nhập tay</a>
+        <button class="ghost" id="folderBtn" style="padding:6px 10px;font-size:13px">📂 Chọn thư mục…</button>
+      </span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="download">⬇️ Tải nhạc</button>
+      <button class="tab" data-tab="library" id="libTab">📚 Thư viện</button>
+    </div>
+
+    <div id="tab-download" class="tabpane">
+      <div style="margin-bottom:14px">
+        <button class="ghost" id="healthBtn">🩺 Kiểm tra trạng thái công cụ</button>
+      </div>
+
+      <div class="panel">
+        <div id="rows"></div>
+        <div class="actions">
+          <button class="ghost" id="addBtn">+ Thêm bài hát</button>
+          <button class="primary" id="dlBtn" disabled>⬇️ Tải</button>
+        </div>
+        <div class="hint">Với link: bấm “Kiểm tra” là sẵn sàng. Với tên bài: bấm “Tìm” rồi chọn 1 kết quả.</div>
+      </div>
+
+      <div class="panel hidden" id="progPanel">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <strong>Tiến độ</strong>
+          <span class="hint" id="progText">0/0</span>
+        </div>
+        <div class="bar">
+          <div id="progFill"></div>
+        </div>
+        <div id="jobs"></div>
+      </div>
+    </div>
+
+    <div id="tab-library" class="tabpane hidden">
+      <div class="panel" id="libPanel"></div>
+    </div>
+  </div>
+
+  <div id="healthOverlay" class="overlay hidden">
+    <div class="modal" id="healthModal"></div>
+  </div>
+
+  <script>
+    const rowsEl = document.getElementById('rows');
+    let rowSeq = 0;
+
+    function classify(text) {
+      const t = text.trim().toLowerCase();
+      if (t.includes('open.spotify.com') || t.startsWith('spotify:')) return 'spotify';
+      if (t.includes('youtube.com') || t.includes('youtu.be')) return 'youtube';
+      return text.trim() ? 'name' : 'empty';
+    }
+
+    function addRow(value = '') {
+      const id = ++rowSeq;
+      const wrap = document.createElement('div');
+      wrap.className = 'rowwrap';
+      wrap.dataset.id = id;
+      wrap._items = [];            // mảng các bài đã chọn của dòng này
+      wrap.innerHTML = `
+    <div class="row">
+      <input type="text" placeholder="Link Spotify / YouTube hoặc tên bài hát…" value="${value.replace(/"/g, '&quot;')}">
+      <button class="find act">Tìm</button>
+      <button class="icon ghost del" title="Xoá dòng">✕</button>
+    </div>
+    <div class="status hint"></div>
+    <div class="results"></div>`;
+      const input = wrap.querySelector('input');
+      const actBtn = wrap.querySelector('.act');
+      const statusEl = wrap.querySelector('.status');
+      const resEl = wrap.querySelector('.results');
+
+      function updateBtnLabel() {
+        const k = classify(input.value);
+        actBtn.textContent = (k === 'name') ? 'Tìm' : 'Kiểm tra';
+      }
+      input.addEventListener('input', () => {
+        wrap._items = []; statusEl.textContent = ''; resEl.innerHTML = '';
+        updateBtnLabel(); updateDlBtn();
+      });
+      updateBtnLabel();
+
+      wrap.querySelector('.del').onclick = () => {
+        wrap.remove();
+        if (!rowsEl.children.length) addRow();
+        updateDlBtn();
+      };
+
+      actBtn.onclick = async () => {
+        const kind = classify(input.value);
+        resEl.innerHTML = '';
+        if (kind === 'empty') { statusEl.textContent = 'Hãy nhập link hoặc tên bài.'; return; }
+        if (kind !== 'name') {
+          // URL -> lấy thông tin bài để xem trước
+          statusEl.textContent = 'Đang lấy thông tin…'; actBtn.disabled = true;
+          try {
+            const r = await fetch('/resolve', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: input.value.trim() })
+            });
+            const data = await r.json();
+            if (data.multi && data.items && data.items.length) {
+              renderMulti(wrap, resEl, statusEl, data);          // album / playlist
+            } else if (data.items && data.items.length) {
+              wrap._items = [data.items[0]];
+              renderSingle(resEl, statusEl, data.items[0], data.note);
+            } else {
+              wrap._items = [];
+              statusEl.innerHTML = `<span class="note">⚠️ ${esc(data.note || 'Không xử lý được link.')}</span>`;
+            }
+            updateDlBtn();
+          } catch (e) {
+            statusEl.textContent = 'Lỗi lấy thông tin: ' + e;
+          } finally { actBtn.disabled = false; }
+          return;
+        }
+        // name -> search
+        statusEl.textContent = 'Đang tìm…'; actBtn.disabled = true;
+        try {
+          const r = await fetch('/search', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: input.value.trim() })
+          });
+          const data = await r.json();
+          renderResults(wrap, resEl, statusEl, data);
+        } catch (e) {
+          statusEl.textContent = 'Lỗi tìm kiếm: ' + e;
+        } finally { actBtn.disabled = false; }
+      };
+
+      rowsEl.appendChild(wrap);
+      input.focus();
+      updateDlBtn();
+    }
+
+    function renderResults(wrap, resEl, statusEl, data) {
+      const all = [...(data.spotify || []), ...(data.youtube || [])];
+      statusEl.innerHTML = data.spotify_note ? `<span class="note">⚠️ ${data.spotify_note}</span>` : '';
+      if (!all.length) { resEl.innerHTML = '<div class="hint">Không tìm thấy kết quả.</div>'; return; }
+      resEl.innerHTML = '';
+      all.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'res';
+        card.innerHTML = cardHTML(item);
+        card.onclick = () => selectResult(wrap, resEl, statusEl, card, item);
+        resEl.appendChild(card);
+      });
+    }
+
+    function selectResult(wrap, resEl, statusEl, card, item) {
+      // ẩn các item khác, chỉ giữ bài đã chọn
+      resEl.querySelectorAll('.res').forEach(c => { c.classList.remove('sel'); if (c !== card) c.style.display = 'none'; });
+      card.classList.add('sel'); card.style.display = '';
+      wrap._items = [{ kind: item.kind, url: item.url, title: item.title, artist: item.artist, in_library: item.in_library }];
+      statusEl.innerHTML =
+        `<span class="chip ${item.kind === 'spotify' ? 'sp' : 'yt'}">Đã chọn: ${esc(item.title)} ✓</span>` +
+        `<a class="relink">Chọn bài khác</a>`;
+      statusEl.querySelector('.relink').onclick = () => {
+        resEl.querySelectorAll('.res').forEach(c => { c.style.display = ''; });
+        statusEl.innerHTML = '<span class="hint">Bấm chọn 1 kết quả bên dưới…</span>';
+      };
+      updateDlBtn();
+    }
+
+    function renderSingle(resEl, statusEl, item, note) {
+      statusEl.innerHTML = `<span class="chip ${item.kind === 'spotify' ? 'sp' : 'yt'}">✓ Lấy thông tin thành công</span>`
+        + (note ? ` <span class="note">⚠️ ${esc(note)}</span>` : '');
+      resEl.innerHTML = '';
+      const card = document.createElement('div');
+      card.className = 'res sel';
+      card.innerHTML = cardHTML(item);
+      resEl.appendChild(card);
+    }
+
+    // Album / playlist Spotify: hiện từng bài. MẶC ĐỊNH chỉ chọn bài chưa có.
+    // Nút "Toàn bộ" / "Chỉ bài chưa có" để chọn nhanh; bấm từng thẻ để bật/tắt.
+    function renderMulti(wrap, resEl, statusEl, data) {
+      const items = data.items;
+      const dup = items.filter(i => i.in_library).length;
+      const fresh = items.length - dup;
+
+      function recompute() {
+        wrap._items = items.filter((_, i) => resEl.children[i].classList.contains('sel'));
+        sync(); updateDlBtn();
+      }
+      function setSel(pred) {
+        [...resEl.children].forEach((c, i) => c.classList.toggle('sel', pred(items[i])));
+        recompute();
+      }
+      function sync() {
+        statusEl.innerHTML =
+          `<span class="chip sp">📀 ${esc(data.title || 'Danh sách')} · chọn ${wrap._items.length}/${items.length}</span>` +
+          ` <a class="relink" id="selAll">Toàn bộ (${items.length})</a>` +
+          (dup ? ` <a class="relink" id="selNew">Chỉ bài chưa có (${fresh})</a>` : '') +
+          (dup ? ` <span class="note">${dup} bài đã có sẵn trong thư viện</span>` : '');
+        statusEl.querySelector('#selAll').onclick = () => setSel(() => true);
+        const sn = statusEl.querySelector('#selNew');
+        if (sn) sn.onclick = () => setSel(it => !it.in_library);
+      }
+
+      resEl.innerHTML = '';
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = item.in_library ? 'res' : 'res sel';   // mặc định bỏ chọn bài đã có
+        card.innerHTML = cardHTML(item);
+        card.onclick = () => { card.classList.toggle('sel'); recompute(); };
+        resEl.appendChild(card);
+      });
+      recompute();   // mặc định: chỉ bài chưa có
+    }
+
+    function esc(s) { return (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+    function cardHTML(item) {
+      const dup = item.in_library ? '<span class="chip dup" style="margin-right:6px">✓ Đã có</span>' : '';
+      return `
+    <img src="${item.thumb || ''}" onerror="this.style.visibility='hidden'">
+    <div class="meta">
+      <div class="t">${esc(item.title)}</div>
+      <div class="a">${dup}<span class="chip ${item.kind === 'spotify' ? 'sp' : 'yt'}" style="margin-right:6px">${item.kind === 'spotify' ? 'Spotify' : 'YouTube'}</span>${esc(item.artist)}</div>
+    </div>
+    <div class="d">${item.duration || ''}</div>`;
+    }
+
+    function updateDlBtn() {
+      const ready = [...rowsEl.children].some(w => w._items && w._items.length);
+      document.getElementById('dlBtn').disabled = !ready;
+    }
+
+    document.getElementById('addBtn').onclick = () => addRow();
+
+    document.getElementById('dlBtn').onclick = async () => {
+      const items = [];
+      [...rowsEl.children].forEach(w => { (w._items || []).forEach(it => items.push(it)); });
+      if (!items.length) { alert('Chưa có dòng nào sẵn sàng. Hãy bấm “Tìm / Kiểm tra” và chọn kết quả.'); return; }
+      const dups = items.filter(i => i.in_library).length;
+      if (dups && !confirm(`Có ${dups}/${items.length} bài đã có trong thư viện. Vẫn tải lại?`)) return;
+      await fetch('/download', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+      document.getElementById('progPanel').classList.remove('hidden');
+      startPolling();
+    };
+
+    let pollTimer = null;
+    function startPolling() {
+      if (pollTimer) return;
+      const tick = async () => {
+        const r = await fetch('/status'); const s = await r.json();
+        renderJobs(s);
+        if (!s.active && s.total) { clearInterval(pollTimer); pollTimer = null; loadLibrary(); }
+      };
+      tick();
+      pollTimer = setInterval(tick, 750);
+    }
+
+    const ST = { queued: 'Đang chờ', downloading: 'Đang tải', converting: 'Đang chuyển mp3', done: 'Xong', error: 'Lỗi' };
+    function renderJobs(s) {
+      document.getElementById('progText').textContent =
+        `${s.done}/${s.total} xong` + (s.error ? ` · ${s.error} lỗi` : '');
+      document.getElementById('progFill').style.width = s.total ? (s.done / s.total * 100) + '%' : '0';
+      const jobsEl = document.getElementById('jobs');
+      jobsEl.innerHTML = '';
+      s.jobs.forEach(j => {
+        const div = document.createElement('div');
+        div.className = 'job';
+        div.innerHTML = `
+      <div class="jt">
+        <div class="n">${esc(j.title)}</div>
+        <div class="l">${esc(j.log || '')}</div>
+      </div>
+      <span class="st ${j.state}">${ST[j.state] || j.state}</span>`;
+        jobsEl.appendChild(div);
+      });
+    }
+
+    const healthBtn = document.getElementById('healthBtn');
+    const healthOverlay = document.getElementById('healthOverlay');
+    const healthModal = document.getElementById('healthModal');
+
+    function closeHealth() { healthOverlay.classList.add('hidden'); }
+    healthOverlay.onclick = (e) => { if (e.target === healthOverlay) closeHealth(); };
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !healthOverlay.classList.contains('hidden')) closeHealth(); });
+
+    healthBtn.onclick = async () => {
+      healthOverlay.classList.remove('hidden');
+      healthModal.innerHTML = '<div class="hint">Đang kiểm tra…</div>';
+      try {
+        const h = await (await fetch('/health')).json();
+        const rows = [
+          ['ffmpeg (chuyển mp3)', h.ffmpeg],
+          ['yt-dlp (YouTube)', h.yt_dlp],
+          ['spotDL (Spotify)', h.spotdl],
+          ['Tìm kiếm Spotify', h.spotify],
+        ];
+        healthModal.innerHTML =
+          '<div class="modal-head"><strong>Trạng thái công cụ</strong><button class="icon ghost" id="healthClose" title="Đóng">✕</button></div>' +
+          rows.map(([name, v]) => `
+      <div class="job">
+        <span style="font-size:18px">${v.ok ? '🟢' : (v.status === 'rate_limited' ? '🟡' : '🔴')}</span>
+        <div class="jt"><div class="n">${name}</div><div class="l">${esc(v.info || '')}</div></div>
+      </div>`).join('') +
+          (h.spotify && !h.spotify.ok
+            ? '<div class="note" style="margin-top:10px">ℹ️ Tải từ <b>link</b> vẫn hoạt động. Tìm theo <b>tên</b> sẽ dùng kết quả YouTube khi Spotify bị giới hạn.</div>'
+            : '');
+        healthModal.querySelector('#healthClose').onclick = closeHealth;
+      } catch (e) {
+        healthModal.innerHTML = '<div class="modal-head"><strong>Lỗi</strong><button class="icon ghost" id="healthClose">✕</button></div><div class="note">Không kiểm tra được: ' + esc('' + e) + '</div>';
+        const c = healthModal.querySelector('#healthClose'); if (c) c.onclick = closeHealth;
+      }
+    };
+
+    // ---- Thư viện ----
+    const libTab = document.getElementById('libTab');
+    const libPanel = document.getElementById('libPanel');
+    let LIB = [];
+    let libBuilt = false;
+
+    async function loadLibrary() {
+      try {
+        const d = await (await fetch('/library')).json();
+        LIB = d.items || [];
+        libTab.textContent = `📚 Thư viện (${d.total})`;
+        renderLibList();   // cập nhật danh sách nếu tab đã dựng
+      } catch (e) { /* ignore */ }
+    }
+
+    function buildLibraryPanel() {
+      libPanel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+      <strong id="libCount">Thư viện</strong>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" id="libOpen">📂 Mở thư mục</button>
+        <button class="ghost" id="libRefresh">↻ Làm mới</button>
+      </div>
+    </div>
+    <input type="text" id="libFilter" placeholder="Lọc theo tên / ca sĩ / album…" style="margin-bottom:10px">
+    <div id="libList"></div>`;
+      libPanel.querySelector('#libFilter').addEventListener('input', renderLibList);
+      libPanel.querySelector('#libRefresh').onclick = async () => { await loadLibrary(); renderLibList(); };
+      libPanel.querySelector('#libOpen').onclick = async () => {
+        const r = await (await fetch('/library/open', { method: 'POST' })).json();
+        if (!r.ok) alert('Không mở được thư mục: ' + (r.error || ''));
+      };
+      libBuilt = true;
+    }
+
+    function renderLibList() {
+      const countEl = libPanel.querySelector('#libCount');
+      const listEl = libPanel.querySelector('#libList');
+      const filterEl = libPanel.querySelector('#libFilter');
+      if (!listEl) return;
+      if (countEl) countEl.textContent = `Thư viện · ${LIB.length} bài`;
+      const q = (filterEl && filterEl.value || '').toLowerCase().trim();
+      const items = LIB.filter(x => !q || (x.title + ' ' + x.artist + ' ' + (x.album || '')).toLowerCase().includes(q));
+      if (!items.length) {
+        listEl.innerHTML = `<div class="hint">${LIB.length ? 'Không khớp bộ lọc.' : 'Chưa có bài nào trong downloads/.'}</div>`;
+        return;
+      }
+      listEl.innerHTML = '';
+
+      // Thanh thao tác hàng loạt
+      const bulk = document.createElement('div');
+      bulk.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:4px';
+      bulk.innerHTML =
+        `<label class="hint" style="margin:0;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="libAll"> Chọn tất cả</label>` +
+        `<button class="ghost" id="libDelSel" style="margin-left:auto;padding:6px 10px;font-size:13px" disabled>🗑 Xoá đã chọn</button>`;
+      listEl.appendChild(bulk);
+      const rowsBox = document.createElement('div');
+      listEl.appendChild(rowsBox);
+
+      const selected = () => [...rowsBox.querySelectorAll('input.libchk:checked')].map(c => c.dataset.file);
+      function refreshBulk() {
+        const n = selected().length;
+        const btn = bulk.querySelector('#libDelSel');
+        btn.disabled = !n;
+        btn.textContent = n ? `🗑 Xoá đã chọn (${n})` : '🗑 Xoá đã chọn';
+        bulk.querySelector('#libAll').checked = n > 0 && n === items.length;
+      }
+
+      items.forEach(x => {
+        const row = document.createElement('div');
+        row.className = 'job';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+      <input type="checkbox" class="libchk" data-file="${esc(x.file)}" style="flex:none;width:16px;height:16px;accent-color:var(--accent)">
+      <div class="jt">
+        <div class="n">${esc(x.title)}</div>
+        <div class="l">${esc(x.artist || '—')}${x.album ? ' · ' + esc(x.album) : ''} · ${x.duration || ''} · ${x.size_mb}MB</div>
+      </div>
+      <button class="icon ghost" title="Xoá">🗑</button>`;
+        const chk = row.querySelector('.libchk');
+        chk.onchange = refreshBulk;
+        // Bấm bất kỳ đâu trên dòng (trừ nút xoá / chính checkbox) cũng tick/untick
+        row.onclick = (e) => {
+          if (e.target === chk || e.target.closest('button')) return;
+          chk.checked = !chk.checked;
+          refreshBulk();
+        };
+        row.querySelector('button').onclick = async () => {
+          if (!confirm(`Xoá "${x.title}" khỏi đĩa?`)) return;
+          const r = await (await fetch('/library/delete', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: x.file })
+          })).json();
+          if (r.ok) { await loadLibrary(); renderLibList(); }
+          else alert('Không xoá được: ' + (r.error || ''));
+        };
+        rowsBox.appendChild(row);
+      });
+
+      bulk.querySelector('#libAll').onchange = (e) => {
+        rowsBox.querySelectorAll('input.libchk').forEach(c => { c.checked = e.target.checked; });
+        refreshBulk();
+      };
+      bulk.querySelector('#libDelSel').onclick = async () => {
+        const files = selected();
+        if (!files.length) return;
+        if (!confirm(`Xoá ${files.length} bài đã chọn khỏi đĩa?`)) return;
+        const r = await (await fetch('/library/delete-many', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files })
+        })).json();
+        if (r.errors && r.errors.length) alert(`Đã xoá ${r.deleted} bài, ${r.errors.length} bài lỗi.`);
+        await loadLibrary(); renderLibList();
+      };
+      refreshBulk();
+    }
+
+    // ---- Chuyển tab ----
+    const tabBtns = document.querySelectorAll('.tab');
+    const panes = {
+      download: document.getElementById('tab-download'),
+      library: document.getElementById('tab-library'),
+    };
+    function switchTab(name) {
+      tabBtns.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+      for (const k in panes) panes[k].classList.toggle('hidden', k !== name);
+      if (name === 'library') {
+        if (!libBuilt) buildLibraryPanel();
+        renderLibList();
+      }
+    }
+    tabBtns.forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+
+    // ---- Đổi thư mục lưu (áp dụng cả tải lẫn thư viện) ----
+    const folderPathEl = document.getElementById('folderPath');
+    const folderBtn = document.getElementById('folderBtn');
+    const folderManual = document.getElementById('folderManual');
+    let CURRENT_DIR = '';
+
+    async function loadConfig() {
+      try {
+        const d = await (await fetch('/config')).json();
+        CURRENT_DIR = d.download_dir || '';
+        folderPathEl.textContent = CURRENT_DIR;
+      } catch (e) { /* ignore */ }
+    }
+
+    function applyDir(r) {
+      if (r.ok) {
+        CURRENT_DIR = r.download_dir;
+        folderPathEl.textContent = r.download_dir;
+        loadLibrary();   // thư viện trỏ sang thư mục mới
+        return true;
+      }
+      return false;
+    }
+
+    // Nút chính: mở hộp chọn thư mục NATIVE của macOS
+    folderBtn.onclick = async () => {
+      const old = folderBtn.textContent;
+      folderBtn.disabled = true; folderBtn.textContent = 'Đang mở hộp chọn…';
+      try {
+        const r = await (await fetch('/config/pick-folder', { method: 'POST' })).json();
+        if (!applyDir(r) && !r.canceled) alert('Không chọn được thư mục: ' + (r.error || ''));
+      } catch (e) { alert('Lỗi: ' + e); }
+      finally { folderBtn.disabled = false; folderBtn.textContent = old; }
+    };
+
+    // Dự phòng: nhập đường dẫn bằng tay
+    folderManual.onclick = async () => {
+      const p = prompt('Nhập đường dẫn thư mục lưu nhạc:', CURRENT_DIR);
+      if (p == null || !p.trim()) return;
+      const r = await (await fetch('/config/folder', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: p.trim() })
+      })).json();
+      if (!applyDir(r)) alert('Không đổi được thư mục: ' + (r.error || ''));
+    };
+
+    loadConfig();
+    loadLibrary();   // nạp số lượng cho nhãn tab khi mở trang
+    addRow(); // dòng đầu tiên
+  </script>
+</body>
+
+</html>

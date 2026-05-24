@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# App runtime & local state
+.server.log
+.server.pid
+# đường dẫn thư mục lưu (theo máy từng người)
+.music4life.json
+# nhạc tải về
+downloads/
+
+# macOS / misc
+.DS_Store
+.cache
