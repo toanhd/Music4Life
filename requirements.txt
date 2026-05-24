@@ -1,0 +1,6 @@
+# Cài bằng: .venv/bin/pip install -r requirements.txt
+# (spotdl đã kéo theo fastapi, uvicorn, spotipy, mutagen, rapidfuzz — liệt kê rõ cho dễ đọc)
+spotdl
+yt-dlp
+fastapi
+uvicorn
