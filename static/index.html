@@ -462,7 +462,7 @@
 
     <div class="tabs">
       <button class="tab active" data-tab="download">⬇️ Tải nhạc</button>
-      <button class="tab" data-tab="saved" id="savedTab">🔖 Đã lưu</button>
+      <button class="tab" data-tab="saved" id="savedTab">🔖 Sưu tầm</button>
       <button class="tab" data-tab="library" id="libTab">📚 Thư viện</button>
     </div>
 
@@ -923,11 +923,11 @@
       for (const k in panes) panes[k].classList.toggle('hidden', k !== name);
       if (name === 'library') {
         if (!libBuilt) buildLibraryPanel();
-        renderLibList();
+        loadLibrary();   // quét lại thư mục mỗi lần mở
       }
       if (name === 'saved') {
         if (!savedBuilt) buildSavedPanel();
-        renderSavedList();
+        loadSaved();     // re-fetch để check bài nào đã có trong thư mục
       }
     }
     tabBtns.forEach(t => t.onclick = () => switchTab(t.dataset.tab));
@@ -942,7 +942,7 @@
       try {
         const d = await (await fetch('/saved')).json();
         SAVED = d.items || [];
-        savedTab.textContent = `🔖 Đã lưu (${d.total})`;
+        savedTab.textContent = `🔖 Sưu tầm (${d.total})`;
         renderSavedList();
       } catch (e) { /* ignore */ }
     }
@@ -950,7 +950,7 @@
     function buildSavedPanel() {
       savedPanel.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
-          <strong id="savedCount">Đã lưu</strong>
+          <strong id="savedCount">Sưu tầm</strong>
           <button class="ghost" id="savedRefresh" style="padding:6px 10px;font-size:13px">↻ Làm mới</button>
         </div>
         <input type="text" id="savedFilter" placeholder="Lọc theo tên / ca sĩ…" style="margin-bottom:10px">
@@ -965,7 +965,7 @@
       const listEl = savedPanel.querySelector('#savedList');
       const filterEl = savedPanel.querySelector('#savedFilter');
       if (!listEl) return;
-      if (countEl) countEl.textContent = `Đã lưu · ${SAVED.length} bài`;
+      if (countEl) countEl.textContent = `Sưu tầm · ${SAVED.length} bài`;
       const q = (filterEl && filterEl.value || '').toLowerCase().trim();
       const items = SAVED.filter(x => !q || (x.title + ' ' + x.artist).toLowerCase().includes(q));
       if (!items.length) {
@@ -1064,6 +1064,7 @@
         CURRENT_DIR = r.download_dir;
         folderPathEl.textContent = r.download_dir;
         loadLibrary();   // thư viện trỏ sang thư mục mới
+        loadSaved();     // cập nhật trạng thái "đã có" cho Sưu tầm theo thư mục mới
         return true;
       }
       return false;
