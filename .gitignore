@@ -8,6 +8,8 @@ __pycache__/
 .server.pid
 # đường dẫn thư mục lưu (theo máy từng người)
 .music4life.json
+# danh sách bài "lưu để tải sau" (theo máy từng người)
+.music4life.saved.json
 # nhạc tải về
 downloads/
 

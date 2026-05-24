@@ -412,6 +412,31 @@ def _ensure_worker():
 
 
 # --- App ---------------------------------------------------------------------
+# --- "Lưu để tải sau" (wishlist, bền qua restart) ----------------------------
+SAVED_FILE = BASE / ".music4life.saved.json"
+SAVED: list[dict] = []
+SAVED_LOCK = threading.Lock()
+
+
+def _load_saved():
+    global SAVED
+    try:
+        data = json.loads(SAVED_FILE.read_text())
+        SAVED = data if isinstance(data, list) else []
+    except Exception:
+        SAVED = []
+
+
+def _persist_saved():
+    try:
+        SAVED_FILE.write_text(json.dumps(SAVED, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+_load_saved()
+
+
 app = FastAPI(title="Music4Life")
 
 
@@ -432,6 +457,23 @@ class Item(BaseModel):
 
 class DownloadReq(BaseModel):
     items: list[Item]
+
+
+class SavedItem(BaseModel):
+    kind: str
+    url: str
+    title: str = ""
+    artist: str = ""
+    thumb: str = ""
+    duration: str = ""
+
+
+class SaveReq(BaseModel):
+    items: list[SavedItem]
+
+
+class UrlsReq(BaseModel):
+    urls: list[str]
 
 
 @app.get("/")
@@ -654,6 +696,41 @@ def library_delete(req: DeleteReq):
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}
+
+
+@app.get("/saved")
+def saved_list():
+    with SAVED_LOCK:
+        items = [dict(x) for x in SAVED]
+    annotate_in_library(items, scan_library())
+    return {"items": items, "total": len(items)}
+
+
+@app.post("/saved/add")
+def saved_add(req: SaveReq):
+    with SAVED_LOCK:
+        have = {x.get("url") for x in SAVED}
+        added = 0
+        for it in req.items:
+            if it.url and it.url not in have:
+                SAVED.append(it.model_dump())
+                have.add(it.url)
+                added += 1
+        _persist_saved()
+        total = len(SAVED)
+    return {"ok": True, "added": added, "total": total}
+
+
+@app.post("/saved/remove")
+def saved_remove(req: UrlsReq):
+    with SAVED_LOCK:
+        urls = set(req.urls)
+        before = len(SAVED)
+        SAVED[:] = [x for x in SAVED if x.get("url") not in urls]
+        _persist_saved()
+        removed = before - len(SAVED)
+        total = len(SAVED)
+    return {"ok": True, "removed": removed, "total": total}
 
 
 class FolderReq(BaseModel):

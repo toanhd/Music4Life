@@ -462,6 +462,7 @@
 
     <div class="tabs">
       <button class="tab active" data-tab="download">⬇️ Tải nhạc</button>
+      <button class="tab" data-tab="saved" id="savedTab">🔖 Đã lưu</button>
       <button class="tab" data-tab="library" id="libTab">📚 Thư viện</button>
     </div>
 
@@ -475,6 +476,7 @@
         <div class="actions">
           <button class="ghost" id="addBtn">+ Thêm bài hát</button>
           <button class="primary" id="dlBtn" disabled>⬇️ Tải</button>
+          <button class="ghost" id="saveBtn" disabled>🔖 Lưu để tải sau</button>
         </div>
         <div class="hint">Với link: bấm “Kiểm tra” là sẵn sàng. Với tên bài: bấm “Tìm” rồi chọn 1 kết quả.</div>
       </div>
@@ -489,6 +491,10 @@
         </div>
         <div id="jobs"></div>
       </div>
+    </div>
+
+    <div id="tab-saved" class="tabpane hidden">
+      <div class="panel" id="savedPanel"></div>
     </div>
 
     <div id="tab-library" class="tabpane hidden">
@@ -611,7 +617,7 @@
       // ẩn các item khác, chỉ giữ bài đã chọn
       resEl.querySelectorAll('.res').forEach(c => { c.classList.remove('sel'); if (c !== card) c.style.display = 'none'; });
       card.classList.add('sel'); card.style.display = '';
-      wrap._items = [{ kind: item.kind, url: item.url, title: item.title, artist: item.artist, in_library: item.in_library }];
+      wrap._items = [item];
       statusEl.innerHTML =
         `<span class="chip ${item.kind === 'spotify' ? 'sp' : 'yt'}">Đã chọn: ${esc(item.title)} ✓</span>` +
         `<a class="relink">Chọn bài khác</a>`;
@@ -682,16 +688,35 @@
     <div class="d">${item.duration || ''}</div>`;
     }
 
+    function collectItems() {
+      const items = [];
+      [...rowsEl.children].forEach(w => { (w._items || []).forEach(it => items.push(it)); });
+      return items;
+    }
+
     function updateDlBtn() {
       const ready = [...rowsEl.children].some(w => w._items && w._items.length);
       document.getElementById('dlBtn').disabled = !ready;
+      document.getElementById('saveBtn').disabled = !ready;
     }
 
     document.getElementById('addBtn').onclick = () => addRow();
 
+    document.getElementById('saveBtn').onclick = async () => {
+      const items = collectItems();
+      if (!items.length) return;
+      const saveBtn = document.getElementById('saveBtn');
+      const r = await (await fetch('/saved/add', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items })
+      })).json();
+      loadSaved();
+      const old = '🔖 Lưu để tải sau';
+      saveBtn.textContent = r.added ? `✓ Đã lưu ${r.added} bài` : 'Đã có trong danh sách lưu';
+      setTimeout(() => { saveBtn.textContent = old; }, 1600);
+    };
+
     document.getElementById('dlBtn').onclick = async () => {
-      const items = [];
-      [...rowsEl.children].forEach(w => { (w._items || []).forEach(it => items.push(it)); });
+      const items = collectItems();
       if (!items.length) { alert('Chưa có dòng nào sẵn sàng. Hãy bấm “Tìm / Kiểm tra” và chọn kết quả.'); return; }
       const dups = items.filter(i => i.in_library).length;
       if (dups && !confirm(`Có ${dups}/${items.length} bài đã có trong thư viện. Vẫn tải lại?`)) return;
@@ -709,7 +734,7 @@
       const tick = async () => {
         const r = await fetch('/status'); const s = await r.json();
         renderJobs(s);
-        if (!s.active && s.total) { clearInterval(pollTimer); pollTimer = null; loadLibrary(); }
+        if (!s.active && s.total) { clearInterval(pollTimer); pollTimer = null; loadLibrary(); loadSaved(); }
       };
       tick();
       pollTimer = setInterval(tick, 750);
@@ -890,6 +915,7 @@
     const tabBtns = document.querySelectorAll('.tab');
     const panes = {
       download: document.getElementById('tab-download'),
+      saved: document.getElementById('tab-saved'),
       library: document.getElementById('tab-library'),
     };
     function switchTab(name) {
@@ -899,8 +925,125 @@
         if (!libBuilt) buildLibraryPanel();
         renderLibList();
       }
+      if (name === 'saved') {
+        if (!savedBuilt) buildSavedPanel();
+        renderSavedList();
+      }
     }
     tabBtns.forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+
+    // ---- Tab "Đã lưu" (lưu để tải sau) ----
+    const savedTab = document.getElementById('savedTab');
+    const savedPanel = document.getElementById('savedPanel');
+    let SAVED = [];
+    let savedBuilt = false;
+
+    async function loadSaved() {
+      try {
+        const d = await (await fetch('/saved')).json();
+        SAVED = d.items || [];
+        savedTab.textContent = `🔖 Đã lưu (${d.total})`;
+        renderSavedList();
+      } catch (e) { /* ignore */ }
+    }
+
+    function buildSavedPanel() {
+      savedPanel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+          <strong id="savedCount">Đã lưu</strong>
+          <button class="ghost" id="savedRefresh" style="padding:6px 10px;font-size:13px">↻ Làm mới</button>
+        </div>
+        <input type="text" id="savedFilter" placeholder="Lọc theo tên / ca sĩ…" style="margin-bottom:10px">
+        <div id="savedList"></div>`;
+      savedPanel.querySelector('#savedFilter').addEventListener('input', renderSavedList);
+      savedPanel.querySelector('#savedRefresh').onclick = loadSaved;
+      savedBuilt = true;
+    }
+
+    function renderSavedList() {
+      const countEl = savedPanel.querySelector('#savedCount');
+      const listEl = savedPanel.querySelector('#savedList');
+      const filterEl = savedPanel.querySelector('#savedFilter');
+      if (!listEl) return;
+      if (countEl) countEl.textContent = `Đã lưu · ${SAVED.length} bài`;
+      const q = (filterEl && filterEl.value || '').toLowerCase().trim();
+      const items = SAVED.filter(x => !q || (x.title + ' ' + x.artist).toLowerCase().includes(q));
+      if (!items.length) {
+        listEl.innerHTML = `<div class="hint">${SAVED.length ? 'Không khớp bộ lọc.' : 'Chưa lưu bài nào. Ở tab Tải nhạc, chọn bài rồi bấm “🔖 Lưu để tải sau”.'}</div>`;
+        return;
+      }
+      listEl.innerHTML = '';
+
+      const bulk = document.createElement('div');
+      bulk.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:4px;flex-wrap:wrap';
+      bulk.innerHTML =
+        `<label class="hint" style="margin:0;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="savAll"> Chọn tất cả</label>` +
+        `<span style="margin-left:auto;display:flex;gap:8px">` +
+        `<button class="primary" id="savDl" style="padding:6px 10px;font-size:13px" disabled>⬇️ Tải đã chọn</button>` +
+        `<button class="ghost" id="savDel" style="padding:6px 10px;font-size:13px" disabled>🗑 Bỏ lưu</button></span>`;
+      listEl.appendChild(bulk);
+      const rowsBox = document.createElement('div');
+      listEl.appendChild(rowsBox);
+
+      const checked = () => [...rowsBox.querySelectorAll('input.savchk:checked')];
+      function refreshBulk() {
+        const n = checked().length;
+        bulk.querySelector('#savDl').disabled = !n;
+        bulk.querySelector('#savDel').disabled = !n;
+        bulk.querySelector('#savDl').textContent = n ? `⬇️ Tải đã chọn (${n})` : '⬇️ Tải đã chọn';
+        bulk.querySelector('#savAll').checked = n > 0 && n === items.length;
+      }
+      const itemByUrl = u => SAVED.find(x => x.url === u);
+
+      items.forEach(x => {
+        const row = document.createElement('div');
+        row.className = 'job';
+        row.style.cursor = 'pointer';
+        const dup = x.in_library ? '<span class="chip dup" style="margin-right:6px">✓ Đã có</span>' : '';
+        row.innerHTML = `
+      <input type="checkbox" class="savchk" data-url="${esc(x.url)}" style="flex:none;width:16px;height:16px;accent-color:var(--accent)">
+      <div class="jt">
+        <div class="n">${esc(x.title || x.url)}</div>
+        <div class="l">${dup}<span class="chip ${x.kind === 'spotify' ? 'sp' : 'yt'}" style="margin-right:6px">${x.kind === 'spotify' ? 'Spotify' : 'YouTube'}</span>${esc(x.artist || '')}${x.duration ? ' · ' + x.duration : ''}</div>
+      </div>
+      <button class="icon ghost" title="Bỏ lưu">🗑</button>`;
+        const chk = row.querySelector('.savchk');
+        chk.onchange = refreshBulk;
+        row.onclick = (e) => {
+          if (e.target === chk || e.target.closest('button')) return;
+          chk.checked = !chk.checked; refreshBulk();
+        };
+        row.querySelector('button').onclick = async () => {
+          await fetch('/saved/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls: [x.url] }) });
+          loadSaved();
+        };
+        rowsBox.appendChild(row);
+      });
+
+      bulk.querySelector('#savAll').onchange = (e) => {
+        rowsBox.querySelectorAll('input.savchk').forEach(c => { c.checked = e.target.checked; });
+        refreshBulk();
+      };
+      bulk.querySelector('#savDl').onclick = async () => {
+        const urls = checked().map(c => c.dataset.url);
+        const dlItems = urls.map(itemByUrl).filter(Boolean);
+        if (!dlItems.length) return;
+        const dups = dlItems.filter(i => i.in_library).length;
+        if (dups && !confirm(`Có ${dups}/${dlItems.length} bài đã có trong thư viện. Vẫn tải lại?`)) return;
+        await fetch('/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: dlItems }) });
+        switchTab('download');
+        document.getElementById('progPanel').classList.remove('hidden');
+        startPolling();
+      };
+      bulk.querySelector('#savDel').onclick = async () => {
+        const urls = checked().map(c => c.dataset.url);
+        if (!urls.length) return;
+        if (!confirm(`Bỏ lưu ${urls.length} bài đã chọn?`)) return;
+        await fetch('/saved/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls }) });
+        loadSaved();
+      };
+      refreshBulk();
+    }
 
     // ---- Đổi thư mục lưu (áp dụng cả tải lẫn thư viện) ----
     const folderPathEl = document.getElementById('folderPath');
@@ -949,6 +1092,7 @@
 
     loadConfig();
     loadLibrary();   // nạp số lượng cho nhãn tab khi mở trang
+    loadSaved();
     addRow(); // dòng đầu tiên
   </script>
 </body>
