@@ -112,4 +112,4 @@ Bấm **📂 Chọn thư mục…** ở thanh trên cùng → chọn thư mục 
 
 ## 📄 Giấy phép
 
-Chưa có. Nếu publish, gợi ý thêm giấy phép **MIT** (tự do dùng/sửa/chia sẻ). Nói nếu bạn muốn mình thêm file `LICENSE`.
+[MIT](LICENSE) © ToanHD — tự do dùng, sửa, chia sẻ.
